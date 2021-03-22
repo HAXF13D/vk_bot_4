@@ -33,8 +33,10 @@ def get_schedule():
         stroka = temp_stroka
 
         item = json.loads(stroka).get('weekdays')
+        print(item)
 
     except Exception:
+        print(Exception)
         print('Произошла ошибка функции get_day()')
         item = None
     finally:

@@ -154,37 +154,38 @@ for event in longpoll.listen():
                                'Суббота ',
                                'Воскресенье'
                                }
-                for item_day in schedule:
-                    for day in day_of_week:
-                        if get_today_schedule(day, item_day) == 1:
-                            # print(day)
-                            today = item_day.get('Lessons')
-                            for i in today:
-                                week_lessons.append(Today_Schedule(
-                                    teacher=i.get('Teacher').get('Name'),
-                                    lesson=i.get('Discipline'),
-                                    time_start=datetime.strptime(i.get('TimeBegin'), "%Y-%m-%d %H:%M:%S"),
-                                    time_end=datetime.strptime(i.get('TimeEnd'), "%Y-%m-%d %H:%M:%S"),
-                                    aud=i.get('Aud').get('Name'),
-                                    podgroup=i.get('Groups')[0].get('Subgroup'),
-                                    number=i.get('PairNumberStart'),
-                                    lessontype=i.get('LessonType'),
-                                    wek_day=day
-                                ))
+                if schedule is not None:
+                    for item_day in schedule:
+                        for day in day_of_week:
+                            if get_today_schedule(day, item_day) == 1:
+                                # print(day)
+                                today = item_day.get('Lessons')
+                                for i in today:
+                                    week_lessons.append(Today_Schedule(
+                                        teacher=i.get('Teacher').get('Name'),
+                                        lesson=i.get('Discipline'),
+                                        time_start=datetime.strptime(i.get('TimeBegin'), "%Y-%m-%d %H:%M:%S"),
+                                        time_end=datetime.strptime(i.get('TimeEnd'), "%Y-%m-%d %H:%M:%S"),
+                                        aud=i.get('Aud').get('Name'),
+                                        podgroup=i.get('Groups')[0].get('Subgroup'),
+                                        number=i.get('PairNumberStart'),
+                                        lessontype=i.get('LessonType'),
+                                        wek_day=day
+                                    ))
 
-                                """
-                                print(i.get('Discipline'))
-                                print(i.get('TimeBegin'))
-                                print(i.get('TimeEnd'))
-                                print(i.get('Aud').get('Name'))
-                                print(i.get('LessonType'))
-                                print(i.get('PairNumberStart'))
-                                print(i.get('Teacher').get('Name'))
-                                print(i.get('Groups')[0].get('Subgroup'))
-                                print('\n')
-
-                print(week_lessons[0].wek_day)
-                """
+                                    """
+                                    print(i.get('Discipline'))
+                                    print(i.get('TimeBegin'))
+                                    print(i.get('TimeEnd'))
+                                    print(i.get('Aud').get('Name'))
+                                    print(i.get('LessonType'))
+                                    print(i.get('PairNumberStart'))
+                                    print(i.get('Teacher').get('Name'))
+                                    print(i.get('Groups')[0].get('Subgroup'))
+                                    print('\n')
+    
+                    print(week_lessons[0].wek_day)
+                    """
 
             if msg == 'начать' or msg == '/start' or msg == 'start' or msg == '/начать':
                 flag1 = 0
