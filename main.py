@@ -215,7 +215,7 @@ s = ''
 
 flag = False
 first_start = True
-week_lessons = []
+
 
 for event in longpoll.listen():
     if event.type == VkEventType.MESSAGE_NEW:
@@ -229,6 +229,7 @@ for event in longpoll.listen():
             if (update_day == UP_DAY and flag == False) or first_start == True:
                 flag = True
                 first_start = False
+                week_lessons = []
                 schedule = get_schedule()
                 if schedule is not None:
                     for item_day in schedule:
