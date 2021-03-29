@@ -49,6 +49,7 @@ WARNING_MSG = '❗Внимание❗\n' \
 STATUS_ADM = 'admin'
 STATUS_COM = 'common'
 
+
 MODE_0 = 'start'
 MODE_1 = 'a_start'
 MODE_2 = 'rasp'
