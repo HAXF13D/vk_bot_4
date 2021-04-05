@@ -49,7 +49,6 @@ WARNING_MSG = '❗Внимание❗\n' \
 STATUS_ADM = 'admin'
 STATUS_COM = 'common'
 
-
 MODE_0 = 'start'
 MODE_1 = 'a_start'
 MODE_2 = 'rasp'
@@ -59,6 +58,8 @@ MODE_5 = 'first_group'
 MODE_6 = 'second_group'
 MODE_7 = 'in_adm_panel'
 MODE_8 = 'check_send'
+MODE_9 = 'schedule_1'
+MODE_10 = 'schedule_2'
 
 START_MSG = ['начать', '/start', 'start', '/начать']
 
@@ -121,6 +122,60 @@ for line in f:
     if line != '':
         users.append(User(int(line[0]), line[1], line[2]))
 f.close()
+
+
+def schendule(status):
+    cur_time = event.datetime + timedelta(hours=3)  # считает текущее время мск + 4
+    weekday = calendar.day_name[cur_time.weekday()]  # считает текущий день недели
+    # print(cur_time)
+
+    # print(DAYS.get(weekday)) #Перевод названия дня недели на русский
+    schedule_message_1 = ''
+    schedule_message_2 = ''
+    week_schedule_message_1 = ''
+    week_schedule_message_2 = ''
+    cur_day = ''
+    for para in week_lessons:
+        try:
+            if para.wek_day != cur_day:
+                week_schedule_message_1 += para.wek_day + ':\n\n'
+                week_schedule_message_2 += para.wek_day + ':\n\n'
+                cur_day = para.wek_day
+
+            if para.podgroup == '(1)':
+                week_schedule_message_1 += get_schedule_message(para)
+
+            elif para.podgroup == '(2)':
+                week_schedule_message_2 += get_schedule_message(para)
+
+            elif para.podgroup == '(1, 2)' or para.podgroup == '':
+                week_schedule_message_2 += get_schedule_message(para)
+                week_schedule_message_1 += get_schedule_message(para)
+        except Exception:
+            print(1)
+
+        if DAYS.get(weekday) == para.wek_day:
+            if para.podgroup == '(1)':
+                schedule_message_1 += get_schedule_message(para)
+
+            elif para.podgroup == '(2)':
+                schedule_message_2 += get_schedule_message(para)
+
+            elif para.podgroup == '(1, 2)' or para.podgroup == '':
+                schedule_message_2 += get_schedule_message(para)
+                schedule_message_1 += get_schedule_message(para)
+
+    schedule_message_2 = schedule_message_check(schedule_message_2)
+    schedule_message_1 = schedule_message_check(schedule_message_1)
+
+    if status == 1:
+        return schedule_message_1
+    if status == 2:
+        return schedule_message_2
+    if status == 3:
+        return week_schedule_message_1
+    if status == 4:
+        return week_schedule_message_2
 
 
 def schedule_message_check(schedule_message):
@@ -242,6 +297,11 @@ ready_send = get_keyboard(False, [
     [('назад', 'blue'), ('ввести текст для рассылки', 'green')]
 ])
 
+group_key = get_keyboard(False, [
+    [('расписание на сегодня', 'green'), ('расписание на неделю', 'green')],
+    [('назад', 'blue')]
+])
+
 empty_key = get_keyboard(False, [])
 
 s = ''
@@ -331,36 +391,10 @@ for event in longpoll.listen():
                                 change_user_mode(user, MODE_1, CHO0SE_ACTION, adm_start_key, [])
 
                         elif user.mode == MODE_2:
-
-                            cur_time = event.datetime + timedelta(hours=3)  # считает текущее время мск + 4
-                            weekday = calendar.day_name[cur_time.weekday()]  # считает текущий день недели
-                            # print(cur_time)
-
-                            # print(DAYS.get(weekday)) #Перевод названия дня недели на русский
-                            schedule_message_1 = ''
-                            schedule_message_2 = ''
-                            for para in week_lessons:
-                                print(para.wek_day)
-                                if DAYS.get(weekday) == para.wek_day:
-                                    if para.podgroup == '(1)':
-                                        schedule_message_1 += get_schedule_message(para)
-
-                                    elif para.podgroup == '(2)':
-                                        schedule_message_2 += get_schedule_message(para)
-
-                                    elif para.podgroup == '(1, 2)' or para.podgroup == '':
-                                        schedule_message_2 += get_schedule_message(para)
-                                        schedule_message_1 += get_schedule_message(para)
-
-                            schedule_message_2 = schedule_message_check(schedule_message_2)
-                            schedule_message_1 = schedule_message_check(schedule_message_1)
-
                             if msg == 'первая подгруппа':
-                                change_user_mode(user, MODE_5, schedule_message_1, back_key, [])
-
+                                change_user_mode(user, MODE_5, CHO0SE_ACTION, group_key, [])
                             elif msg == 'вторая подгруппа':
-                                change_user_mode(user, MODE_6, schedule_message_2, back_key, [])
-
+                                change_user_mode(user, MODE_6, CHO0SE_ACTION, group_key, [])
                             elif msg == 'назад':
                                 change_user_mode(user, MODE_1, CHO0SE_ACTION, adm_start_key, [])
 
@@ -376,15 +410,17 @@ for event in longpoll.listen():
                             if msg == 'да':
                                 for user_send in users:
                                     if user_send.status == STATUS_ADM:
-                                        change_user_mode_2(user_send, MODE_1, MAILING_ADM_MSG, s, adm_start_key, '', final_attachment)
+                                        change_user_mode_2(user_send, MODE_1, MAILING_ADM_MSG, s, adm_start_key, '',
+                                                           final_attachment)
 
                                     elif user_send.status == STATUS_COM:
-                                        change_user_mode_2(user_send, MODE_0, MAILING_COM_MSG, s, start_key, '', final_attachment)
+                                        change_user_mode(user_send, MODE_0, s, start_key,
+                                                         final_attachment)
 
                             elif msg == 'нет':
                                 change_user_mode(user, MODE_1, CHO0SE_ACTION, adm_start_key, [])
 
-                        elif user.mode == 'check_send':
+                        elif user.mode == MODE_8:
                             s = ''
                             final_attachment = ""
                             f_msg = vk.messages.getById(message_ids=event.message_id)
@@ -428,9 +464,25 @@ for event in longpoll.listen():
                                 s += '\n'
                             change_user_mode_2(user, MODE_7, MSG_FOR_MAILING, s, adm_panel_key, '', final_attachment)
                         elif user.mode == MODE_5 or user.mode == MODE_6:
-
+                            if user.mode == MODE_5:
+                                if msg == 'расписание на сегодня':
+                                    change_user_mode(user, MODE_9, schendule(1), back_key, [])
+                                if msg == 'расписание на неделю':
+                                    change_user_mode(user, MODE_9, schendule(3), back_key, [])
+                            if user.mode == MODE_6:
+                                if msg == 'расписание на сегодня':
+                                    change_user_mode(user, MODE_10, schendule(2), back_key, [])
+                                if msg == 'расписание на неделю':
+                                    change_user_mode(user, MODE_10, schendule(4), back_key, [])
                             if msg == 'назад':
                                 change_user_mode(user, MODE_2, CHO0SE_GROUP, in_schedule_key, [])
+
+                        elif user.mode == MODE_9:
+                            if msg == 'назад':
+                                change_user_mode(user, MODE_5, CHO0SE_ACTION, group_key, [])
+                        elif user.mode == MODE_10:
+                            if msg == 'назад':
+                                change_user_mode(user, MODE_6, CHO0SE_ACTION, group_key, [])
 
                     elif user.status == STATUS_COM:
 
@@ -448,41 +500,45 @@ for event in longpoll.listen():
                                 change_user_mode(user, MODE_0, CHO0SE_ACTION, start_key, [])
 
                         elif user.mode == MODE_2:
-
-                            cur_time = event.datetime + timedelta(hours=3)  # считает текущее время мск + 4
-                            weekday = calendar.day_name[cur_time.weekday()]  # считает текущий день недели
-                            # print(cur_time)
-                            # print(DAYS.get(weekday)) #Перевод названия дня недели на русский
-                            schedule_message_1 = ''
-                            schedule_message_2 = ''
-                            for para in week_lessons:
-                                # print(para.wek_day)
-                                if DAYS.get(weekday) == para.wek_day:
-                                    if para.podgroup == '(1)':
-                                        schedule_message_1 += get_schedule_message(para)
-
-                                    elif para.podgroup == '(2)':
-                                        schedule_message_2 += get_schedule_message(para)
-
-                                    elif para.podgroup == '(1, 2)' or para.podgroup == '':
-                                        schedule_message_2 += get_schedule_message(para)
-                                        schedule_message_1 += get_schedule_message(para)
-
-                            schedule_message_2 = schedule_message_check(schedule_message_2)
-                            schedule_message_1 = schedule_message_check(schedule_message_1)
-
                             if msg == 'первая подгруппа':
-                                change_user_mode(user, MODE_5, schedule_message_1, back_key, [])
+                                change_user_mode(user, MODE_5, CHO0SE_ACTION, group_key, [])
 
                             elif msg == 'вторая подгруппа':
-                                change_user_mode(user, MODE_6, schedule_message_2, back_key, [])
+                                change_user_mode(user, MODE_6, CHO0SE_ACTION, group_key, [])
 
                             elif msg == 'назад':
                                 change_user_mode(user, MODE_0, CHO0SE_ACTION, start_key, [])
 
                         elif user.mode == MODE_5 or user.mode == MODE_6:
 
+                            if user.mode == MODE_5:
+
+                                if msg == 'расписание на сегодня':
+                                    change_user_mode(user, MODE_9, schendule(1), back_key, [])
+
+                                if msg == 'расписание на неделю':
+                                    change_user_mode(user, MODE_9, schendule(3), back_key, [])
+
+                            if user.mode == MODE_6:
+
+                                if msg == 'расписание на сегодня':
+                                    change_user_mode(user, MODE_10, schendule(2), back_key, [])
+
+                                if msg == 'расписание на неделю':
+                                    change_user_mode(user, MODE_10, schendule(4), back_key, [])
+
                             if msg == 'назад':
                                 change_user_mode(user, MODE_2, CHO0SE_GROUP, in_schedule_key, [])
+
+
+                        elif user.mode == MODE_9:
+
+                            if msg == 'назад':
+                                change_user_mode(user, MODE_5, CHO0SE_ACTION, group_key, [])
+
+                        elif user.mode == MODE_10:
+
+                            if msg == 'назад':
+                                change_user_mode(user, MODE_6, CHO0SE_ACTION, group_key, [])
 
             change_mode()
