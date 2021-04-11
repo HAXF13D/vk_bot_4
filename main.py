@@ -324,32 +324,11 @@ def change_mode():
     """
     Перезаписывает текущее состояние пользователей в БД
     """
+    global users
     f = open(file, mode='w', encoding='utf-8')
     for user in users:
         f.write(f"{user.id}:{user.status}:{user.mode}:\n")
     f.close()
-
-
-def change_user_mode(user, str_mode, msg, keyboard, attachment):
-    """
-    :param user: обект класса User которому отправляем сообщение
-    :param str_mode: mode который хотим присвоить пользователю
-    :param msg: сообщение которое отправялем
-    :param keyboard: клавиаутра
-    :param attachment: вложение
-    """
-    user.mode = str_mode
-    sender(user.id, msg, keyboard, attachment)
-
-
-def change_user_mode_2(user, str_mode, msg1, msg2, keyboard, attachment1, attachment2):
-    """
-    как в функции change_user_mode, только отправялем два сообщения, а не одно
-    """
-    user.mode = str_mode
-    sender(user.id, msg1, keyboard, attachment1)
-    sender(user.id, msg2, keyboard, attachment2)
-
 
 """
 Описание клавиатур
@@ -436,11 +415,13 @@ for event in longpoll.listen():
                     if user.id == id:
 
                         if user.status == STATUS_ADM:
-                            change_user_mode(user, MODE_1, CHO0SE_ACTION, adm_start_key, [])
+                            user.mode = MODE_1
+                            sender(user.id, CHO0SE_ACTION, adm_start_key, [])
                             # Перевод пользователя на соотвествующий главный экран
 
                         else:
-                            change_user_mode(user, MODE_0, CHO0SE_ACTION, start_key, [])
+                            user.mode = MODE_0
+                            sender(user.id, CHO0SE_ACTION, start_key, [])
                             # Перевод пользователя на соотвествующий главный экран
 
                         flag1 = False
@@ -469,43 +450,53 @@ for event in longpoll.listen():
                             # Если пользователь на главном экране
                             if msg == 'расписание':
                                 # Если нажата кнопка расписание
-                                change_user_mode(user, MODE_2, CHO0SE_GROUP, in_schedule_key, [])
+                                user.mode = MODE_2
+                                sender(user.id, CHO0SE_GROUP, in_schedule_key, [])
 
                             elif msg == 'разработчики':
                                 # Если нажата кнопка # Если нажата кнопка расписание
-                                change_user_mode_2(user, MODE_3, DEV_MSG, CHO0SE_ACTION, back_key, [], [])
+                                user.mode = MODE_3
+                                sender(user.id, DEV_MSG, back_key, [])
+                                sender(user.id, CHO0SE_ACTION, back_key, [])
 
                             elif msg == 'рассылка':
                                 # Если нажата кнопка рассылка
-                                change_user_mode(user, MODE_4, WARNING_MSG, ready_send, [])
+                                user.mode = MODE_4
+                                sender(user.id, WARNING_MSG, ready_send, [])
 
                         elif user.mode == MODE_3:
                             # Если пользователь во вкладке разработчки
                             if msg == 'назад':
                                 # Если нажата кнопка назад
-                                change_user_mode(user, MODE_1, CHO0SE_ACTION, adm_start_key, [])
+                                user.mode = MODE_1
+                                sender(user.id, CHO0SE_ACTION, adm_start_key, [])
 
                         elif user.mode == MODE_2:
                             # Если пользователь во вкладке расписание
                             if msg == 'первая подгруппа':
                                 # Если нажата кнопка первая подгруппа
-                                change_user_mode(user, MODE_5, CHO0SE_ACTION, group_key, [])
+                                user.mode = MODE_5
+                                sender(user.id, CHO0SE_ACTION, group_key, [])
                             elif msg == 'вторая подгруппа':
                                 # Если нажата кнопка вторая подгруппа
-                                change_user_mode(user, MODE_6, CHO0SE_ACTION, group_key, [])
+                                user.mode = MODE_6
+                                sender(user.id, CHO0SE_ACTION, group_key, [])
                             elif msg == 'назад':
                                 # Если нажата кнопка назад
-                                change_user_mode(user, MODE_1, CHO0SE_ACTION, adm_start_key, [])
+                                user.mode = MODE_1
+                                sender(user.id, CHO0SE_ACTION, adm_start_key, [])
 
                         elif user.mode == MODE_4:
                             # Если пользователь во вкладке рассылка
                             if msg == 'назад':
                                 # Если нажата кнопка назад
-                                change_user_mode(user, MODE_1, CHO0SE_ACTION, adm_start_key, [])
+                                user.mode = MODE_1
+                                sender(user.id, CHO0SE_ACTION, adm_start_key, [])
 
                             elif msg == 'ввести текст для рассылки':
                                 # Если нажата кнопка ввести текст для рассылки
-                                change_user_mode(user, MODE_8, MAILING_MSG, empty_key, [])
+                                user.mode = MODE_8
+                                sender(user.id, MAILING_MSG, empty_key, [])
 
                         elif user.mode == MODE_7:
                             # Если введено сообщение для рассылки
@@ -513,16 +504,19 @@ for event in longpoll.listen():
                                 # Если нажата кнопка да, то отправяет сообщение s c вложением final_attachment всем
                                 for user_send in users:
                                     if user_send.status == STATUS_ADM:
-                                        change_user_mode_2(user_send, MODE_1, MAILING_ADM_MSG, s, adm_start_key, '',
-                                                           final_attachment)
+                                        user_send.mode = MODE_1
+                                        sender(user_send.id, MAILING_ADM_MSG, adm_start_key, '')
+                                        sender(user_send.id, s, adm_start_key, final_attachment)
 
                                     elif user_send.status == STATUS_COM:
-                                        change_user_mode(user_send, MODE_0, s, start_key, final_attachment)
+                                        user_send.mode = MODE_0
+                                        sender(user_send.id, s, start_key, final_attachment)
                                 change_mode()
 
                             elif msg == 'нет':
                                 # Если нажата кнопка нет, то переносит на главынй экран
-                                change_user_mode(user, MODE_1, CHO0SE_ACTION, adm_start_key, [])
+                                user.mode = MODE_1
+                                sender(user.id, CHO0SE_ACTION, adm_start_key, [])
 
                         elif user.mode == MODE_8:
                             # Если пользователь во влкадке ввода текста для рассылки
@@ -573,7 +567,9 @@ for event in longpoll.listen():
                             for txt in ans_txt_msg:
                                 s += txt
                                 s += '\n'
-                            change_user_mode_2(user, MODE_7, MSG_FOR_MAILING, s, adm_panel_key, '', final_attachment)
+                            user.mode = MODE_7
+                            sender(user.id, MSG_FOR_MAILING, adm_panel_key, '')
+                            sender(user.id, s, adm_panel_key, final_attachment)
 
                         elif user.mode == MODE_5 or user.mode == MODE_6:
                             # Если пользователь во вкладке первая или вторая подгруппа
@@ -581,30 +577,37 @@ for event in longpoll.listen():
                                 # Если пользователь во вкладке первая подгруппа
                                 if msg == 'расписание на сегодня':
                                     # Если пользователь нажал на кнопку расписание на сегодня
-                                    change_user_mode(user, MODE_9, schendule(1), back_key, [])
+                                    user.mode = MODE_9
+                                    sender(user.id, schendule(1), back_key, [])
                                 if msg == 'расписание на неделю':
                                     # Если пользователь нажал на кнопку расписание на неделю
-                                    change_user_mode(user, MODE_9, schendule(3), back_key, [])
+                                    user.mode = MODE_9
+                                    sender(user.id, schendule(3), back_key, [])
                             if user.mode == MODE_6:
                                 # Если пользователь во вкладке вторая подгруппа
                                 if msg == 'расписание на сегодня':
                                     # Если пользователь нажал на кнопку расписание на сегодня
-                                    change_user_mode(user, MODE_10, schendule(2), back_key, [])
+                                    user.mode = MODE_10
+                                    sender(user.id, schendule(2), back_key, [])
                                 if msg == 'расписание на неделю':
                                     # Если пользователь нажал на кнопку расписание на неделю
-                                    change_user_mode(user, MODE_10, schendule(4), back_key, [])
+                                    user.mode = MODE_10
+                                    sender(user.id, schendule(4), back_key, [])
                             if msg == 'назад':
                                 # Если пользователь нажал на кнопку назад
-                                change_user_mode(user, MODE_2, CHO0SE_GROUP, in_schedule_key, [])
+                                user.mode = MODE_2
+                                sender(user.id, CHO0SE_GROUP, in_schedule_key, [])
 
                         elif user.mode == MODE_9:
                             # Если пользователь во вкладке расписания первой подгруппы
                             if msg == 'назад':
-                                change_user_mode(user, MODE_5, CHO0SE_ACTION, group_key, [])
+                                user.mode = MODE_5
+                                sender(user.id, CHO0SE_ACTION, group_key, [])
                         elif user.mode == MODE_10:
                             # Если пользователь во вкладке расписания первой подгруппы
                             if msg == 'назад':
-                                change_user_mode(user, MODE_6, CHO0SE_ACTION, group_key, [])
+                                user.mode = MODE_6
+                                sender(user.id, CHO0SE_ACTION, group_key, [])
 
                     elif user.status == STATUS_COM:
                         # Если статус пользоватея common
@@ -612,55 +615,69 @@ for event in longpoll.listen():
                         if user.mode == MODE_0:
 
                             if msg == 'расписание':
-                                change_user_mode(user, MODE_2, CHO0SE_GROUP, in_schedule_key, [])
+                                user.mode = MODE_2
+                                sender(user.id, CHO0SE_GROUP, in_schedule_key, [])
 
                             elif msg == 'разработчики':
-                                change_user_mode_2(user, MODE_3, DEV_MSG, CHO0SE_ACTION, back_key, [], [])
+                                user.mode = MODE_3
+                                sender(user.id, DEV_MSG, back_key, [])
+                                sender(user.id, CHO0SE_ACTION, back_key, [])
 
                         elif user.mode == MODE_3:
 
                             if msg == 'назад':
-                                change_user_mode(user, MODE_0, CHO0SE_ACTION, start_key, [])
+                                user.mode = MODE_0
+                                sender(user.id, CHO0SE_ACTION, start_key, [])
 
                         elif user.mode == MODE_2:
                             if msg == 'первая подгруппа':
-                                change_user_mode(user, MODE_5, CHO0SE_ACTION, group_key, [])
+                                user.mode = MODE_5
+                                sender(user.id, CHO0SE_ACTION, group_key, [])
 
                             elif msg == 'вторая подгруппа':
-                                change_user_mode(user, MODE_6, CHO0SE_ACTION, group_key, [])
+                                user.mode = MODE_6
+                                sender(user.id, CHO0SE_ACTION, group_key, [])
 
                             elif msg == 'назад':
-                                change_user_mode(user, MODE_0, CHO0SE_ACTION, start_key, [])
+                                user.mode = MODE_0
+                                sender(user.id, CHO0SE_ACTION, start_key, [])
 
                         elif user.mode == MODE_5 or user.mode == MODE_6:
 
                             if user.mode == MODE_5:
 
                                 if msg == 'расписание на сегодня':
-                                    change_user_mode(user, MODE_9, schendule(1), back_key, [])
+                                    user.mode = MODE_9
+                                    sender(user.id, schendule(1), back_key, [])
 
                                 if msg == 'расписание на неделю':
-                                    change_user_mode(user, MODE_9, schendule(3), back_key, [])
+                                    user.mode = MODE_9
+                                    sender(user.id, schendule(3), back_key, [])
 
                             if user.mode == MODE_6:
 
                                 if msg == 'расписание на сегодня':
-                                    change_user_mode(user, MODE_10, schendule(2), back_key, [])
+                                    user.mode = MODE_10
+                                    sender(user.id, schendule(2), back_key, [])
 
                                 if msg == 'расписание на неделю':
-                                    change_user_mode(user, MODE_10, schendule(4), back_key, [])
+                                    user.mode = MODE_10
+                                    sender(user.id, schendule(4), back_key, [])
 
                             if msg == 'назад':
-                                change_user_mode(user, MODE_2, CHO0SE_GROUP, in_schedule_key, [])
+                                user.mode = MODE_2
+                                sender(user.id, CHO0SE_GROUP, in_schedule_key, [])
 
                         elif user.mode == MODE_9:
 
                             if msg == 'назад':
-                                change_user_mode(user, MODE_5, CHO0SE_ACTION, group_key, [])
+                                user.mode = MODE_5
+                                sender(user.id, CHO0SE_ACTION, group_key, [])
 
                         elif user.mode == MODE_10:
 
                             if msg == 'назад':
-                                change_user_mode(user, MODE_6, CHO0SE_ACTION, group_key, [])
+                                user.mode = MODE_6
+                                sender(user.id, CHO0SE_ACTION, group_key, [])
 
             change_mode()
