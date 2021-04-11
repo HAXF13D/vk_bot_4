@@ -10,8 +10,8 @@ from requests.exceptions import ConnectionError
 #203391000 Bot testing
 #200241547 PIJ
 
-groupId = 203391000
-token = "5241050f0eb555d1feb921c27088dd17bad1309ae42345015f6917f19eca699af47bc241168a39fefd80e"
+groupId = 200241547
+token = "3f6c6e13925f782f50307c6e863350270214547a46a873604fba529c85527088a3beb3eda45bc2a640985"
 vk = vk_api.VkApi(token = token)
 session_api = vk.get_api()
 longpoll = VkLongPoll(vk)
