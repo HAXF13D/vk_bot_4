@@ -13,6 +13,7 @@ from vk_api.longpoll import VkLongPoll, VkEventType  # https://vk-api.readthedoc
 from datetime import *  # https://pypi.org/project/vk-api/
 from config import main_token
 from parcer import *
+import sqlite3 as sqlite
 
 """
 В файле config хранится строка main_token в которой прописан ключ
@@ -138,26 +139,94 @@ class Today_Schedule:  # Расписание на сегодня, содерж�
         self.lessontype = lessontype
         self.wek_day = wek_day
 
+#-------------------------Следующие функции используются для работы с базой данных date_base.db--------------------------------
 
-file = "date_base.txt"
+conn = None
+cur = None #Курсор для отправки запросов к бд
+try:
+    conn = sqlite.connect("date_base.db") #Здесь создаётся или если уже создан, то открывается файл базы данных
+    cur = conn.cursor()
+except Exception as e:
+    print("Ошибка подключения к бд:") #Сообщение ошибки в случае некорректного подключения
+    print(e)
+
+def dataBaseTables(cur, conn): #Данная функция создаёт таблицы с именами users и teachers в базе данных, если они не созданы
+    try:
+        # query - Переменная в которой хранится sql запрос к базе данных
+        cur.execute("""CREATE TABLE IF NOT EXISTS users(
+            userid INT PRIMARY KEY,
+            user_status TEXT,
+            user_screen TEXT);""") #Отправка запроса к базе данных
+        cur.execute("""CREATE TABLE IF NOT EXISTS teachers(
+            teacherid INT PRIMARY KEY,
+            teacher_name TEXT,
+            teacher_href TEXT);""") #Отправка запроса к базе данных
+        conn.commit() #Сохранение изменений внесённых в бд
+    except Exception as e:
+        print("Не удалось отправить запрос по созданию таблиц:")#Сообщение ошибки в случае некорректной работы запросов
+        print(e)
+
+def dataBaseCompletionUsers(id, status, mode, cur, conn):#Эта функция заполняет таблицу users базы данных data_base.db данными подаваемыми на вход
+    # Добавление пользователя в БД
+    try:
+        query = "INSERT INTO users(userid, user_status, user_screen) VALUES( '{0}', '{1}', '{2}');".format(id, status, mode)#Составление запроса
+        cur.execute(query) #Отправка запроса к базе данных
+        conn.commit() #Сохранение изменений внесённых в бд
+    except Exception as e:
+        print("Ошибка внесения данных в таблицу users:") #Сообщение ошибки в случае некорректной работы запросов
+        print(e)
+
+def dataBaseGetTeachers(teacher_name, cur, conn):
+    try:
+        query = """SELECT teacher_href FROM teachers
+                    WHERE
+                    teacher_name = '{0}'""".format(teacher_name) #Запрос на выборку ссылки на преподавателя по имени
+        cur.execute(query) #Выполнение запроса
+        selection = cur.fetchone() #Получение результата запроса(Выборка)
+        conn.commit() #Сохранение изменений внесённых в бд
+        return selection[0]
+    except Exception as e:
+        print("Ошибка запроса к базе данных:")
+        print(e)
+
+def dataBaseGetUsers(cur, conn):
+    try:
+        query = """ SELECT * FROM users""" #Запрос на выборку всех пользователей
+        cur.execute(query) #Выполнение запроса
+        selection = cur.fetchall() #Получение результата запроса(Выборка)
+        conn.commit() #Сохранение изменений внесённых в бд
+        return selection
+    except Exception as e:
+        print("Ошибка выборки пользователей:")
+        print(e)
+
+def dataBaseUpdateUsers(id, status, mode, cur, conn):#Эта функция заполняет таблицу users базы данных data_base.db данными подаваемыми на вход
+    # Добавление пользователя в БД
+    try:
+        query = "UPDATE users SET user_screen = '{0}' WHERE userid = {1}".format(mode, id)#Составление запроса
+        cur.execute(query) #Отправка запроса к базе данных
+        conn.commit() #Сохранение изменений внесённых в бд
+    except Exception as e:
+        print("Ошибка внесения изменений в таблицу users:") #Сообщение ошибки в случае некорректной работы запросов
+        print(e)
+
+dataBaseTables(cur, conn)
+#--------------------------------------------------На этом функции работы с базой данных заканчиваются-------------------------------------
+
+
+#file = "date_base.txt"
 """
-date_base.txt - база данных пользователей
-в ней содержится информация в следующем формате:
-    ID:STATUS:MODE:
 Нижи идет заполнение массива users пользователями из бд
 users - обект класса User
 """
+us = dataBaseGetUsers(cur, conn)
 
-f = open(file, mode='r', encoding='utf-8')
 users = []
-for line in f:
-    line = line.split(':')
-    if line != '':
-        users.append(User(int(line[0]), line[1], line[2]))
-f.close()  # НЕ ЗАБЫВАЕМ ЗАКРЫВАТЬ ФАЙЛ БАЗЫ ДАННЫХ!!!!
+for line in us:
+    users.append(User(int(line[0]), line[1], line[2]))
 
 
-def schendule(status):
+def schendule(status, cur, conn):
     """
     Данная функция возвращает 4 разные строки, в зависимости от status
     :param status: принимает 4 значения
@@ -181,28 +250,28 @@ def schendule(status):
                 cur_day = para.wek_day
 
             if para.podgroup == '(1)':
-                week_schedule_message_1 += get_schedule_message(para)
+                week_schedule_message_1 += get_schedule_message(para, cur, conn)
 
             elif para.podgroup == '(2)':
-                week_schedule_message_2 += get_schedule_message(para)
+                week_schedule_message_2 += get_schedule_message(para, cur, conn)
 
             elif para.podgroup == '(1, 2)' or para.podgroup == '':
-                week_schedule_message_2 += get_schedule_message(para)
-                week_schedule_message_1 += get_schedule_message(para)
+                week_schedule_message_2 += get_schedule_message(para, cur, conn)
+                week_schedule_message_1 += get_schedule_message(para, cur, conn)
         except Exception:
             pass
 
         if DAYS.get(weekday) == para.wek_day:
             if para.podgroup == '(1)':
-                schedule_message_1 += get_schedule_message(para)
+                schedule_message_1 += get_schedule_message(para, cur, conn)
 
             elif para.podgroup == '(2)':
-                schedule_message_2 += get_schedule_message(para)
+                schedule_message_2 += get_schedule_message(para, cur, conn)
 
             elif para.podgroup == '(1, 2)' or para.podgroup == '':
-                schedule_message_2 += get_schedule_message(para)
-                schedule_message_1 += get_schedule_message(para)
-
+                schedule_message_2 += get_schedule_message(para, cur, conn)
+                schedule_message_1 += get_schedule_message(para, cur, conn)
+   
     schedule_message_2 = schedule_message_check(schedule_message_2)
     schedule_message_1 = schedule_message_check(schedule_message_1)
 
@@ -216,20 +285,21 @@ def schendule(status):
         return week_schedule_message_2
 
 
-def schedule_message_check(schedule_message):
+def schedule_message_check(schedule_message, week_schedule_message):
     """
     :param schedule_message: сообщение расписания
     :return: проверяет пустое расписание на сегодня или нет и возвращает отредактированное сообщение
     """
+    result = ""
     if len(schedule_message) == 0:
-        result = 'Сегодня пар нет'
+        result.append('Сегодня пар нет')
     else:
-        result = 'Расписание на сегодня:\n\n' + schedule_message
+        result.append('Расписание на сегодня:\n\n' + schedule_message)
 
     return result
 
 
-def get_schedule_message(para):
+def get_schedule_message(para, cur, conn):
     """
     :param para: обект типа Today_Schedule
     :return: сообщение с выводом того, что хранится в para
@@ -242,7 +312,7 @@ def get_schedule_message(para):
     result += 'Аудитория: ' + str(para.aud) + '\n'
     result += 'Тип пары: ' + str(para.lessontype) + '\n'
     result += 'Препод: ' + str(para.teacher) + '\n'
-    result += 'Ссылка БББ: ' + get_link(get_links(), str(para.teacher))
+    result += 'Ссылка БББ: ' + dataBaseGetTeachers(str(para.teacher), cur, conn)
     result += '\n\n'
     return result
 
@@ -320,15 +390,14 @@ def get_attachments(item):  # Функция преобразования пер
         print('Произошла ошибка в функции get_attachments')
 
 
-def change_mode():
+def change_mode(id, cur, conn):
     """
     Перезаписывает текущее состояние пользователей в БД
     """
     global users
-    f = open(file, mode='w', encoding='utf-8')
     for user in users:
-        f.write(f"{user.id}:{user.status}:{user.mode}:\n")
-    f.close()
+        if user.id == id:
+            dataBaseUpdateUsers(user.id, user.status, user.mode, cur, conn)
 
 """
 Описание клавиатур
@@ -386,7 +455,7 @@ for event in longpoll.listen():
                 schedule = get_schedule()  # schedule хранит словарь со всеми днями недели
                 if schedule is not None:  # расписание на неделю не пустое
                     for item_day in schedule:  # перебор всех дней недели с парами
-                        for day in DAY_OF_WEEK:  # Перебор всех жней недели на русском
+                        for day in DAY_OF_WEEK:  # Перебор всех дней недели на русском
                             if get_today_schedule(day, item_day):  # Проверка на то, есть сегодня пары или нет
                                 # print(day)
                                 today = item_day.get('Lessons')
@@ -428,10 +497,11 @@ for event in longpoll.listen():
 
                 if flag1:
                     # Добавление пользователя в БД
-                    users.append(User(id, STATUS_COM, MODE_0))
-                    f = open(file, mode='a', encoding='utf-8')
-                    f.write(str(id) + ':' + STATUS_COM + ':' + MODE_0 + '\n')
-                    f.close()
+                    dataBaseCompletionUsers(int(id), STATUS_COM, MODE_0, cur, conn)
+                    #users.append(User(id, STATUS_COM, MODE_0))
+                    #f = open(file, mode='a', encoding='utf-8')
+                    #f.write(str(id) + ':' + STATUS_COM + ':' + MODE_0 + '\n')
+                    #f.close()
                     # Перевод пользователя на соотвествующий главный экран
                     sender(int(id), CHO0SE_ACTION, start_key, [])
 
@@ -511,7 +581,7 @@ for event in longpoll.listen():
                                     elif user_send.status == STATUS_COM:
                                         user_send.mode = MODE_0
                                         sender(user_send.id, s, start_key, final_attachment)
-                                change_mode()
+                                    change_mode(user_send.id, cur, conn)
 
                             elif msg == 'нет':
                                 # Если нажата кнопка нет, то переносит на главынй экран
@@ -578,21 +648,21 @@ for event in longpoll.listen():
                                 if msg == 'расписание на сегодня':
                                     # Если пользователь нажал на кнопку расписание на сегодня
                                     user.mode = MODE_9
-                                    sender(user.id, schendule(1), back_key, [])
+                                    sender(user.id, schendule(1, cur, conn), back_key, [])
                                 if msg == 'расписание на неделю':
                                     # Если пользователь нажал на кнопку расписание на неделю
                                     user.mode = MODE_9
-                                    sender(user.id, schendule(3), back_key, [])
+                                    sender(user.id, schendule(3, cur, conn), back_key, [])
                             if user.mode == MODE_6:
                                 # Если пользователь во вкладке вторая подгруппа
                                 if msg == 'расписание на сегодня':
                                     # Если пользователь нажал на кнопку расписание на сегодня
                                     user.mode = MODE_10
-                                    sender(user.id, schendule(2), back_key, [])
+                                    sender(user.id, schendule(2, cur, conn), back_key, [])
                                 if msg == 'расписание на неделю':
                                     # Если пользователь нажал на кнопку расписание на неделю
                                     user.mode = MODE_10
-                                    sender(user.id, schendule(4), back_key, [])
+                                    sender(user.id, schendule(4, cur, conn), back_key, [])
                             if msg == 'назад':
                                 # Если пользователь нажал на кнопку назад
                                 user.mode = MODE_2
@@ -648,21 +718,21 @@ for event in longpoll.listen():
 
                                 if msg == 'расписание на сегодня':
                                     user.mode = MODE_9
-                                    sender(user.id, schendule(1), back_key, [])
+                                    sender(user.id, schendule(1, cur, conn), back_key, [])
 
                                 if msg == 'расписание на неделю':
                                     user.mode = MODE_9
-                                    sender(user.id, schendule(3), back_key, [])
+                                    sender(user.id, schendule(3, cur, conn), back_key, [])
 
                             if user.mode == MODE_6:
 
                                 if msg == 'расписание на сегодня':
                                     user.mode = MODE_10
-                                    sender(user.id, schendule(2), back_key, [])
+                                    sender(user.id, schendule(2, cur, conn), back_key, [])
 
                                 if msg == 'расписание на неделю':
                                     user.mode = MODE_10
-                                    sender(user.id, schendule(4), back_key, [])
+                                    sender(user.id, schendule(4, cur, conn), back_key, [])
 
                             if msg == 'назад':
                                 user.mode = MODE_2
@@ -680,4 +750,4 @@ for event in longpoll.listen():
                                 user.mode = MODE_6
                                 sender(user.id, CHO0SE_ACTION, group_key, [])
 
-            change_mode()
+            change_mode(id, cur, conn)

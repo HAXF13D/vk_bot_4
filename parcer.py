@@ -66,35 +66,6 @@ def get_cur_lesson(today_lessons, cur_time):
     finally:
         return cur_lesson
 
-def get_links():
-    links = {}
-    try:
-        f = open('link.txt', mode='r', encoding='utf-8')
-        temp_links = []
-        for line in f:
-            line = line.split('&')
-            temp_links.append(line)
-
-        temp_links[0] = '+'
-        for link in temp_links:
-            if link[0] != '+':
-                links[f"{link[0]}"] = link[1]
-    except Exception:
-        print('Произошла ошибка в функции get_links')
-        links = {}
-    finally:
-        return links
-
-
-def get_link(links, name):
-    result = '\n'
-    try:
-        result = links.get(name).replace('\n', '') + '\n'
-    except Exception:
-        print('Произошла ошибка в функции get_link')
-    finally:
-        return result
-
 # f.write(item)
 
 
