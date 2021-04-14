@@ -192,7 +192,11 @@ def dataBaseGetTeachers(teacher_name, cur, conn):
         cur.execute(query)  # Выполнение запроса
         selection = cur.fetchone()  # Получение результата запроса(Выборка)
         conn.commit()  # Сохранение изменений внесённых в бд
-        return selection[0]
+        if selection is None:
+            temp_bd_parc = "Упс..., у меня её нет"
+        else:
+            temp_bd_parc = selection[0]
+        return temp_bd_parc
     except Exception as e:
         print("Ошибка запроса к базе данных:")
         print(e)
